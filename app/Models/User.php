@@ -45,4 +45,30 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    
+use App\Models\Project;
+use App\Models\Task;
+use App\Models\Comment;
+use App\Models\File;
+
+public function projects(): HasMany
+{
+    return $this->hasMany(Project::class);
+}
+
+public function tasks(): HasMany
+{
+    return $this->hasMany(Task::class, 'author_id');
+}
+
+public function comments(): HasMany
+{
+    return $this->hasMany(Comment::class);
+}
+
+public function files(): HasMany
+{
+    return $this->hasMany(File::class, 'entity_id')
+                ->where('entity', 'user');
+}
 }
