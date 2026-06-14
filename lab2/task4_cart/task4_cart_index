@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Завдання 4 — Корзина покупок</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 650px; margin: 40px auto; background: #f5f5f5; }
+        .card { background: #fff; border-radius: 8px; padding: 24px 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        h2 { margin-top: 0; color: #333; }
+        h3 { color: #555; margin-bottom: 12px; }
+        .products { display: flex; flex-wrap: wrap; gap: 12px; }
+        .product { border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px 18px; background: #fafafa; min-width: 140px; }
+        .product strong { display: block; margin-bottom: 6px; }
+        .product button { padding: 6px 14px; background: #4a90e2; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85rem; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .cart-item form { margin: 0; }
+        .btn-remove { padding: 4px 10px; background: #e74c3c; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-clear { padding: 8px 16px; background: #888; color: #fff; border: none; border-radius: 6px; cursor: pointer; margin-top: 12px; }
+        .prev-items { color: #888; font-size: 0.9rem; }
+        .empty { color: #aaa; font-style: italic; }
+    </style>
+</head>
+<body>
+<?php
+
+session_start();
+
+$products = [
+    1 => ['name' => 'Навушники',  'price' => 999],
+    2 => ['name' => 'Клавіатура', 'price' => 750],
+    3 => ['name' => 'Мишка',      'price' => 450],
+    4 => ['name' => 'Монітор',    'price' => 5500],
+    5 => ['name' => 'USB-хаб',    'price' => 320],
+];
+
+if (!isset($_SESSION['cart'])) {
+    $_SESSION['cart'] = [];
+}
+
+if (isset($_POST['add']) && isset($products[(int)$_POST['add']])) {
+    $id = (int)$_POST['add'];
+    if (isset($_SESSION['cart'][$id])) {
+        $_SESSION['cart'][$id]++;
+    } else {
+        $_SESSION['cart'][$id] = 1;
+    }
+}
+
+if (isset($_POST['remove']) && isset($_SESSION['cart'][(int)$_POST['remove']])) {
+    unset($_SESSION['cart'][(int)$_POST['remove']]);
+}
+
+if (isset($_POST['checkout'])) {
+    if (!empty($_SESSION['cart'])) {
+        $names = [];
+        foreach ($_SESSION['cart'] as $id => $qty) {
+            if (isset($products[$id])) {
+                $names[] = $products[$id]['name'] . " x{$qty}";
+            }
+        }
+        setcookie('previous_purchases', implode('|', $names), time() + 30 * 24 * 60 * 60, '/');
+    }
+    $_SESSION['cart'] = [];
+    header('Location: index.php');
+    exit;
+}
+
+$previousPurchases = [];
+if (!empty($_COOKIE['previous_purchases'])) {
+    $previousPurchases = explode('|', $_COOKIE['previous_purchases']);
+}
+
+?>
+
+<div class="card">
+    <h2>🛍 Магазин</h2>
+    <div class="products">
+        <?php foreach ($products as $id => $product): ?>
+        <div class="product">
+            <strong><?= htmlspecialchars($product['name']) ?></strong>
+            <span><?= $product['price'] ?> грн</span><br>
+            <form method="POST" style="margin-top:8px;">
+                <input type="hidden" name="add" value="<?= $id ?>">
+                <button type="submit">+ До корзини</button>
+            </form>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+
+<div class="card">
+    <h3>🛒 Корзина (поточна сесія)</h3>
+    <?php if (empty($_SESSION['cart'])): ?>
+        <p class="empty">Корзина порожня.</p>
+    <?php else: ?>
+        <?php $total = 0; ?>
+        <?php foreach ($_SESSION['cart'] as $id => $qty): ?>
+            <?php if (isset($products[$id])): ?>
+                <?php $subtotal = $products[$id]['price'] * $qty; $total += $subtotal; ?>
+                <div class="cart-item">
+                    <span><?= htmlspecialchars($products[$id]['name']) ?> × <?= $qty ?></span>
+                    <span><?= $subtotal ?> грн</span>
+                    <form method="POST">
+                        <input type="hidden" name="remove" value="<?= $id ?>">
+                        <button class="btn-remove" type="submit">✕</button>
+                    </form>
+                </div>
+            <?php endif; ?>
+        <?php endforeach; ?>
+        <p><strong>Разом: <?= $total ?> грн</strong></p>
+        <form method="POST">
+            <button class="btn-clear" name="checkout">Оформити замовлення (очистити корзину)</button>
+        </form>
+    <?php endif; ?>
+</div>
+
+<div class="card">
+    <h3>📦 Попередні покупки (з cookie)</h3>
+    <?php if (empty($previousPurchases)): ?>
+        <p class="empty">Немає даних про попередні покупки.</p>
+    <?php else: ?>
+        <ul class="prev-items">
+            <?php foreach ($previousPurchases as $item): ?>
+                <li><?= htmlspecialchars($item) ?></li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+</div>
+
+</body>
+</html>
