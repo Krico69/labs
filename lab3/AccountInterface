@@ -1,0 +1,26 @@
+<?php
+
+
+interface AccountInterface
+{
+    /**
+     * Поповнення рахунку на вказану суму.
+     *
+     * @param float $amount Сума поповнення (має бути > 0)
+     */
+    public function deposit(float $amount): void;
+
+    /**
+     * Зняття коштів з рахунку.
+     *
+     * @param float $amount Сума для зняття (має бути > 0 і не перевищувати баланс)
+     */
+    public function withdraw(float $amount): void;
+
+    /**
+     * Повертає поточний баланс рахунку.
+     *
+     * @return float Поточний баланс
+     */
+    public function getBalance(): float;
+}
