@@ -2,47 +2,48 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Comment;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CommentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): JsonResponse
     {
-        //
+        return response()->json(Comment::with(['task', 'user'])->get());
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        //
+        $validated = $request->validate([
+            'task_id' => 'required|exists:tasks,id',
+            'content' => 'required|string|max:1000',
+        ]);
+
+        $validated['user_id'] = $request->user()?->id ?? 1;
+
+        $comment = Comment::create($validated);
+        return response()->json($comment, 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show(Comment $comment): JsonResponse
     {
-        //
+        return response()->json($comment->load(['task', 'user']));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Comment $comment): JsonResponse
     {
-        //
+        $validated = $request->validate([
+            'content' => 'required|string|max:1000',
+        ]);
+
+        $comment->update($validated);
+        return response()->json($comment);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(Comment $comment): JsonResponse
     {
-        //
+        $comment->delete();
+        return response()->json(['message' => 'Deleted successfully']);
     }
 }

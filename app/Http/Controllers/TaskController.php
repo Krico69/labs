@@ -2,47 +2,60 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\TaskCreated;
+use App\Models\Task;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TaskController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): JsonResponse
     {
-        //
+        return response()->json(Task::with(['project', 'author', 'assignee'])->get());
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        //
+        $validated = $request->validate([
+            'title'       => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'status'      => 'required|in:new,in_progress,done',
+            'project_id'  => 'required|exists:projects,id',
+            'assigned_to' => 'nullable|exists:users,id',
+            'due_date'    => 'nullable|date',
+        ]);
+
+        $validated['author_id'] = $request->user()?->id ?? 1;
+
+        $task = Task::create($validated);
+
+        event(new TaskCreated($task));
+
+        return response()->json($task, 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show(Task $task): JsonResponse
     {
-        //
+        return response()->json($task->load(['project', 'author', 'assignee', 'comments']));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Task $task): JsonResponse
     {
-        //
+        $validated = $request->validate([
+            'title'       => 'sometimes|string|max:255',
+            'description' => 'nullable|string',
+            'status'      => 'sometimes|in:new,in_progress,done',
+            'assigned_to' => 'nullable|exists:users,id',
+            'due_date'    => 'nullable|date',
+        ]);
+
+        $task->update($validated);
+        return response()->json($task);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(Task $task): JsonResponse
     {
-        //
+        $task->delete();
+        return response()->json(['message' => 'Deleted successfully']);
     }
 }
