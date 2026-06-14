@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Завдання 5 — Таймаут сесії</title>
+    <meta http-equiv="refresh" content="30">
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 520px; margin: 60px auto; background: #f5f5f5; }
+        .card { background: #fff; border-radius: 8px; padding: 28px 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        h2 { margin-top: 0; color: #333; }
+        label { display: block; font-size: 0.875rem; color: #555; margin-top: 14px; }
+        input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; box-sizing: border-box; margin-top: 6px; }
+        button { margin-top: 18px; padding: 10px 24px; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
+        .btn-primary { background: #4a90e2; color: #fff; }
+        .btn-danger  { background: #e74c3c; color: #fff; margin-left: 10px; }
+        .info { background: #eaf4fb; border: 1px solid #bee3f8; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; font-size: 0.9rem; color: #2c5f8a; }
+        .warning { background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 12px 16px; color: #7a5c00; margin-bottom: 16px; }
+        .expired { background: #fdecea; border: 1px solid #f5c6c6; border-radius: 6px; padding: 12px 16px; color: #c0392b; margin-bottom: 16px; }
+        .greeting { color: #27ae60; font-size: 1.15rem; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+<div class="card">
+<?php
+
+session_start();
+
+const TIMEOUT = 300;
+
+if (isset($_POST['logout'])) {
+    session_destroy();
+    header('Location: index.php');
+    exit;
+}
+
+if (isset($_SESSION['user'])) {
+    $idle = time() - $_SESSION['last_activity'];
+
+    if ($idle > TIMEOUT) {
+        session_destroy();
+        session_start(); 
+        $expired = true;
+    } else {
+        $_SESSION['last_activity'] = time();
+    }
+}
+
+if (isset($_POST['login']) && !empty(trim($_POST['username']))) {
+    $_SESSION['user']          = htmlspecialchars(trim($_POST['username']));
+    $_SESSION['last_activity'] = time(); 
+}
+
+if (!empty($expired)) {
+    echo "<div class='expired'>⏰ Сесію завершено через 5 хвилин неактивності. Будь ласка, увійдіть знову.</div>";
+}
+
+if (!empty($_SESSION['user'])) {
+    $user = $_SESSION['user'];
+    $idle = time() - $_SESSION['last_activity'];
+    $remaining = TIMEOUT - $idle;
+
+    echo "<p class='greeting'>Привіт, {$user}! 👋</p>";
+    echo "<div class='info'>
+        ⏱ Сесія активна.<br>
+        Час до автовиходу: <strong>{$remaining} сек.</strong><br>
+        Остання активність: <strong>" . date('H:i:s', $_SESSION['last_activity']) . "</strong>
+    </div>";
+    echo "<div class='warning'>ℹ️ Сесія автоматично завершиться через 5 хвилин без активності.</div>";
+
+    echo "
+    <form method='POST' style='display:inline;'>
+        <button class='btn-primary' name='refresh'>🔄 Оновити активність</button>
+        <button class='btn-danger' name='logout'>Вийти</button>
+    </form>";
+} else {
+    echo "<h2>Вхід із таймаутом сесії</h2>";
+    echo "<p style='color:#555;'>Сесія автоматично завершиться через <strong>5 хвилин</strong> неактивності.</p>";
+    echo "
+    <form method='POST'>
+        <label>Ваше ім'я</label>
+        <input type='text' name='username' placeholder='Наприклад: Марія' maxlength='50'>
+        <button class='btn-primary' name='login'>Увійти</button>
+    </form>";
+}
+?>
+</div>
+</body>
+</html>
